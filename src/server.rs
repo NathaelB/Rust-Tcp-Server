@@ -7,7 +7,7 @@ use std::sync::{Arc, mpsc, Mutex};
 
 static THREAD_COUNTER: AtomicUsize = AtomicUsize::new(0);
 
-pub struct Server {
+pub(crate) struct Server {
   pub listener: TcpListener,
 }
 
