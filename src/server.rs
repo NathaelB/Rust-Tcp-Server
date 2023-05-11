@@ -1,32 +1,33 @@
-use std::fmt::format;
 use std::io::{ErrorKind, Read, Write};
 use std::net::{TcpListener, TcpStream};
-use std::sync::atomic::{AtomicUsize, Ordering};
+use std::sync::atomic::{AtomicUsize};
 use std::thread;
-use std::sync::{Arc, mpsc, Mutex};
+use crate::router::Router;
 
 static THREAD_COUNTER: AtomicUsize = AtomicUsize::new(0);
 
 pub(crate) struct Server {
   pub listener: TcpListener,
+  pub router: Router
 }
 
 impl Server {
   pub fn new (addr: &str) -> Server {
     let listener = TcpListener::bind(addr).unwrap();
-
-    Server { listener }
+    let mut router = Router::new();
+    Server { listener, router  }
   }
 
   pub fn run(&self) {
     println!("Server TCP running in port : 3333");
     for stream in self.listener.incoming() {
       let stream = stream.unwrap();
-      thread::spawn(move || Self::handle_client(stream));
+      let router = self.router.clone();
+      thread::spawn(move || Self::handle_client(&router, stream));
     }
   }
 
-  fn handle_client (mut stream: TcpStream) {
+  fn handle_client (router: &Router, mut stream: TcpStream) {
     let mut buffer = [0; 512];
     let client_addr = stream.peer_addr().unwrap();
 
@@ -40,9 +41,12 @@ impl Server {
           let message = String::from_utf8_lossy(&buffer[..bytes_read]);
           println!("Received message from client {}: {}", client_addr, message);
 
-          let response = "Message reçu!";
+          let path = "/hello"; // For example
+
+          router.handle_request(path, &mut stream);
+          /*let response = "Message reçu!";
           stream.write(response.as_bytes()).unwrap();
-          stream.flush().unwrap();
+          stream.flush().unwrap();*/
         }
         Err(e) => match e.kind() {
           ErrorKind::WouldBlock => (),
