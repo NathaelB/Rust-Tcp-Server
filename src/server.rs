@@ -1,10 +1,7 @@
 use std::io::{ErrorKind, Read, Write};
 use std::net::{TcpListener, TcpStream};
-use std::sync::atomic::{AtomicUsize};
 use std::thread;
 use crate::router::Router;
-
-static THREAD_COUNTER: AtomicUsize = AtomicUsize::new(0);
 
 pub(crate) struct Server {
   pub listener: TcpListener,
@@ -14,7 +11,7 @@ pub(crate) struct Server {
 impl Server {
   pub fn new (addr: &str) -> Server {
     let listener = TcpListener::bind(addr).unwrap();
-    let mut router = Router::new();
+    let router = Router::new();
     Server { listener, router  }
   }
 
