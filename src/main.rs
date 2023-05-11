@@ -1,16 +1,16 @@
 mod server;
 mod router;
 
-use std::{io, thread};
+use std::io::Write;
 use server::Server;
-use router::Router;
 
 fn main () {
-  let server = Server::new("127.0.0.1:3333");
-  let mut router = Router::new();
+  let mut server = Server::new("127.0.0.1:3333");
 
-  router.add_route("/hello", |stream| {
+
+  server.router.add_route("/hello", |stream| {
     stream.write(b"Hello, World!").unwrap();
+    stream.flush().unwrap();
   });
 
   server.run();
