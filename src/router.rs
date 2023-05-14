@@ -1,7 +1,13 @@
 use std::collections::HashMap;
+use std::io::Write;
 use std::net::TcpStream;
 
 type Handler = fn(&mut TcpStream);
+
+enum Route {
+  Static(String),
+  Parameter(String)
+}
 
 #[derive(Clone)]
 pub(crate) struct Router {
@@ -25,9 +31,10 @@ impl Router {
         handler(stream)
       }
       None => {
-        eprintln!("ERROR 404");
+        println!("ERROR 404");
+        stream.write(b"404 Not Found").unwrap();
+        stream.flush().unwrap();
       }
     }
-
   }
 }
