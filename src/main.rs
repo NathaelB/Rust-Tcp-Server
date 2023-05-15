@@ -1,5 +1,6 @@
 mod server;
 mod router;
+mod database;
 
 use std::io::Write;
 use std::net::Shutdown;
