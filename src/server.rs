@@ -5,11 +5,11 @@ use std::net::{TcpListener, TcpStream};
 use std::sync::{Arc, Mutex};
 use std::sync::mpsc::channel;
 use std::thread;
-use crate::kernel::Service;
+use crate::kernel::{Kernel, Service};
 use crate::router::Router;
 
 pub(crate) struct Server {
-  pub listener: Arc<Mutex<TcpListener>>,
+  pub listener: Arc<TcpListener>,
   pub router: Arc<Mutex<Router>>,
   pub max_connections: usize,
   pub current_connections: Arc<Mutex<usize>>
@@ -17,10 +17,8 @@ pub(crate) struct Server {
 
 impl Server {
   pub fn new (addr: &str, max_connections: usize, router: &Router) -> Result<Self, Box<dyn Error>> {
-    let listener = Arc::new(Mutex::new(TcpListener::bind(addr)?));
+    let listener = Arc::new(TcpListener::bind(addr)?);
 
-    let router_ptr = std::ptr::addr_of!(router);
-    println!("Adresse mémoire de router dans Server : {:p}", router_ptr);
     Ok(Server {
       listener,
       router: Arc::new(Mutex::new(router.clone())),
@@ -33,7 +31,7 @@ impl Server {
     println!("Server TCP running in port : 3333");
 
     let (tx, _rx) = channel::<()>();
-    let listener = self.listener.lock().unwrap();
+    let listener = self.listener.unwrap();
     for stream in listener.incoming() {
       let tx = tx.clone();
       let current_connections = self.current_connections.clone();
