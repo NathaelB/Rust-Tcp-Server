@@ -31,7 +31,7 @@ impl Server {
     println!("Server TCP running in port : 3333");
 
     let (tx, _rx) = channel::<()>();
-    let listener = self.listener.unwrap();
+    let listener = self.listener.lock().unwrap();
     for stream in listener.incoming() {
       let tx = tx.clone();
       let current_connections = self.current_connections.clone();

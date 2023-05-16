@@ -31,7 +31,7 @@ impl<T: Any> AsAny for T {
 }
 
 pub struct Kernel {
-  services: HashMap<TypeId, Box<dyn Service>>,
+  services: HashMap<TypeId, Arc<dyn Service>>,
 }
 
 impl Kernel {
@@ -55,21 +55,22 @@ impl Kernel {
     }
   }
 
-  pub fn register_service<T>(&mut self, service: &T)
+  pub fn register_service<T>(&mut self, service: Arc<T>)
     where
-      T: 'static + Service + Clone,
+      T: 'static + Service + Send + Sync,
   {
-    self.services.insert(TypeId::of::<T>(), Box::new(service.clone()));
+    self.services.insert(TypeId::of::<T>(), service);
   }
 
-  pub fn get_service<T>(&self) -> Option<&T>
+  pub fn get_service<T>(&self) -> Option<Arc<T>>
     where
       T: 'static + Service,
   {
     self.services.get(&TypeId::of::<T>())
       .map(|service| {
-        let service_any = service.as_any();
-        service_any.downcast_ref::<T>().unwrap()
+        service.as_any()
+          .downcast::<T>()
+          .unwrap().clone()
       })
   }
 
