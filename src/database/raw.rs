@@ -8,7 +8,7 @@ pub struct RawConnection {
 }
 
 impl Connection for RawConnection {
-  fn open<A: ToSocketAddrs>(addr: A) -> Result<Self, E> {
+  fn open<A: ToSocketAddrs>(addr: A) -> Result<Self, std::io::Error> where Self: Sized {
     let stream = TcpStream::connect(addr);
     
     match stream {
@@ -17,7 +17,7 @@ impl Connection for RawConnection {
     }
   }
 
-  fn close (&mut self) -> Result<(), E> {
+  fn close (&mut self) -> Result<(), std::io::Error> {
     match self.stream.shutdown(Shutdown::Both) {
       Ok(_) => Ok(()),
       Err(e) => Err(e)

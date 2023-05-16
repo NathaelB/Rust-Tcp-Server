@@ -1,26 +1,29 @@
+use std::any::Any;
 use std::error::Error;
 use std::io::{ErrorKind, Read, Write};
 use std::net::{TcpListener, TcpStream};
 use std::sync::{Arc, Mutex};
 use std::sync::mpsc::channel;
 use std::thread;
+use crate::kernel::Service;
 use crate::router::Router;
 
 pub(crate) struct Server {
   pub listener: TcpListener,
-  pub router: Router,
+  pub router: Arc<Mutex<Router>>,
   pub max_connections: usize,
   pub current_connections: Arc<Mutex<usize>>
 }
 
 impl Server {
-  pub fn new (addr: &str, max_connections: usize) -> Result<Self, Box<dyn Error>> {
+  pub fn new (addr: &str, max_connections: usize, router: &Router) -> Result<Self, Box<dyn Error>> {
     let listener = TcpListener::bind(addr).unwrap();
-    let router = Router::new();
 
+    let router_ptr = std::ptr::addr_of!(router);
+    println!("Adresse mémoire de router dans Server : {:p}", router_ptr);
     Ok(Server {
       listener,
-      router,
+      router: Arc::new(Mutex::new(router.clone())),
       max_connections,
       current_connections: Arc::new(Mutex::new(0)),
     })
@@ -41,18 +44,18 @@ impl Server {
       }
       *current_connections_guard += 1;
 
-      let stream = stream.unwrap();
       let router = self.router.clone();
       let tx1 = tx.clone();
 
       thread::spawn(move || {
-        Self::handle_client(&router, stream);
+        let mut stream = stream.unwrap();
+        Self::handle_client(router, stream);
         let _ = tx1.send(());
       });
     }
   }
 
-  fn handle_client (router: &Router, mut stream: TcpStream) {
+  fn handle_client (router: Arc<Mutex<Router>>, mut stream: TcpStream) {
     let mut buffer = [0; 512];
     let client_addr = stream.peer_addr().unwrap();
 
@@ -67,15 +70,9 @@ impl Server {
           println!("Received message from client {}: {}", client_addr, message);
 
           // Parse the request and extract the path
-          let request_line = message.lines().next().unwrap_or("");
-          let parts: Vec<&str> = request_line.split_whitespace().collect();
-          if parts.len() > 1 {
-            let path = parts[1];
-            router.handle_request(path, &mut stream);
-          } else {
-            // Handle invalid request
-          }
-
+          let mut router_guard = router.lock().unwrap();
+          router_guard.handle_request(&mut stream, &buffer[..bytes_read]);
+          drop(router_guard);
         }
         Err(e) => match e.kind() {
           ErrorKind::WouldBlock => (),
@@ -88,5 +85,27 @@ impl Server {
         },
       }
     }
+  }
+}
+
+impl Service for Server {
+  fn start(&self) {
+    let mut server = self;
+
+    /*server.router.add_route("/hello", |stream| {
+      stream.write(b"Hello, World!").unwrap();
+      stream.flush().unwrap();
+    });
+
+    server.router.add_route("/algebre", |stream| {
+      stream.write(b"L'algebre ton pire cauchemar!").unwrap();
+      stream.flush().unwrap();
+    });
+
+    server.router.add_route("/end", |stream| {
+      println!("DISCONECTED CONNEXION");
+      stream.shutdown(Shutdown::Both).unwrap();
+    });*/
+    server.run();
   }
 }
