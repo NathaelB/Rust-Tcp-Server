@@ -3,6 +3,7 @@ use std::collections::HashMap;
 use std::fmt::Pointer;
 use std::iter::Flatten;
 use std::ops::Deref;
+use std::sync::{Arc, Mutex};
 use crate::server::Server;
 
 pub trait Service: AsAny + AsAnyMut {
@@ -37,6 +38,20 @@ impl Kernel {
   pub fn new() -> Self {
     Kernel {
       services: HashMap::new(),
+    }
+  }
+
+  pub fn instance () -> Arc<Mutex<Self>> {
+    static mut INSTANCE: Option<Arc<Mutex<Kernel>>> = None;
+    static ONCE: std::sync::Once = std::sync::Once::new();
+
+    unsafe {
+      ONCE.call_once(|| {
+        let kernel = Kernel::new();
+        INSTANCE = Some(Arc::new(Mutex::new(kernel)));
+      });
+
+      INSTANCE.as_ref().unwrap().clone()
     }
   }
 
