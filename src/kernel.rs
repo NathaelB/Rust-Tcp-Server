@@ -40,14 +40,11 @@ impl Kernel {
     }
   }
 
-  pub fn register_service<T>(&mut self, service: T)
+  pub fn register_service<T>(&mut self, service: &T)
     where
-      T: 'static + Service,
+      T: 'static + Service + Clone,
   {
-    //println!("Enregistrement du service de type {:?}", TypeId::of::<T>());
-    let router_ptr = std::ptr::addr_of!(service);
-    println!("Adresse mémoire de router: {:p}", router_ptr);
-    self.services.insert(TypeId::of::<T>(), Box::new(service));
+    self.services.insert(TypeId::of::<T>(), Box::new(service.clone()));
   }
 
   pub fn get_service<T>(&self) -> Option<&T>

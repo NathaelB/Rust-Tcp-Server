@@ -9,7 +9,7 @@ use crate::kernel::Service;
 use crate::router::Router;
 
 pub(crate) struct Server {
-  pub listener: TcpListener,
+  pub listener: Arc<Mutex<TcpListener>>,
   pub router: Arc<Mutex<Router>>,
   pub max_connections: usize,
   pub current_connections: Arc<Mutex<usize>>
@@ -17,7 +17,7 @@ pub(crate) struct Server {
 
 impl Server {
   pub fn new (addr: &str, max_connections: usize, router: &Router) -> Result<Self, Box<dyn Error>> {
-    let listener = TcpListener::bind(addr).unwrap();
+    let listener = Arc::new(Mutex::new(TcpListener::bind(addr)?));
 
     let router_ptr = std::ptr::addr_of!(router);
     println!("Adresse mémoire de router dans Server : {:p}", router_ptr);
@@ -33,8 +33,8 @@ impl Server {
     println!("Server TCP running in port : 3333");
 
     let (tx, _rx) = channel::<()>();
-
-    for stream in self.listener.incoming() {
+    let listener = self.listener.lock().unwrap();
+    for stream in listener.incoming() {
       let tx = tx.clone();
       let current_connections = self.current_connections.clone();
 
@@ -107,5 +107,16 @@ impl Service for Server {
       stream.shutdown(Shutdown::Both).unwrap();
     });*/
     server.run();
+  }
+}
+
+impl Clone for Server {
+  fn clone(&self) -> Self {
+    Server {
+      listener: self.listener.clone(),
+      router: self.router.clone(),
+      max_connections: self.max_connections,
+      current_connections: self.current_connections.clone(),
+    }
   }
 }

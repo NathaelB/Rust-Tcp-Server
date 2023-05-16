@@ -14,7 +14,6 @@ enum Route {
   Parameter(String)
 }
 
-#[derive(Debug)]
 pub(crate) struct Router {
   routes: HashMap<String, Handler>
 }
@@ -97,3 +96,5 @@ impl Clone for Router {
     }
   }
 }
+
+

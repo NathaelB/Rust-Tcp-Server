@@ -14,16 +14,13 @@ fn main() {
   let mut kernel = Kernel::new();
   let mut router_service = Router::new();
 
-  println!("router: {:?}", router_service);
 
-  let router_ptr = std::ptr::addr_of!(router_service);
-  println!("Pointer de router_service in main: {:p}", router_ptr);
 
-  kernel.register_service(router_service.clone());
 
   let tcp_service = Server::new("127.0.0.1:3333", 10, &router_service).expect("Error TCP Server");
 
-  kernel.register_service(tcp_service);
+  kernel.register_service(&tcp_service);
+  kernel.register_service(&router_service);
 
 
   // Récupération de l'instance de Router enregistrée dans le kernel
@@ -35,10 +32,5 @@ fn main() {
     stream.flush().unwrap();
   });
 
-  if std::ptr::eq(router, &router_service) {
-    println!("Les deux instances sont les mêmes");
-  } else {
-    println!("Les deux instances sont différentes");
-  }
   kernel.boot();
 }
