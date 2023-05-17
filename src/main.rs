@@ -17,9 +17,22 @@ fn main () {
         .body(b"Hello, World!")
         .build();
 
-      stream.write(&response).unwrap();
+      stream.write(response.as_slice()).unwrap();
       stream.flush().unwrap();
+      stream.shutdown(Shutdown::Both).unwrap();
     }).unwrap();
 
   Server::new(("127.0.0.1", 3333), 10, router).run();
 }
+
+/*
+let response = HttpResponse::new(200)
+        .header("Content-Type", "text/plain")
+        .body(b"Hello, World!")
+        .build();
+
+      stream.write(&response).unwrap();
+      stream.flush().unwrap();
+
+      println!("Message envoyé");
+ */
