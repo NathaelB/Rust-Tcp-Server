@@ -3,7 +3,7 @@ use std::io::{ErrorKind, Read, Write};
 use std::net::{TcpListener, TcpStream};
 use std::sync::{Arc, Mutex};
 use std::sync::mpsc::channel;
-use std::thread;
+use std::{io, net, thread};
 use crate::router::Router;
 
 pub(crate) struct Server {
@@ -14,16 +14,18 @@ pub(crate) struct Server {
 }
 
 impl Server {
-  pub fn new (addr: &str, max_connections: usize) -> Result<Self, Box<dyn Error>> {
-    let listener = TcpListener::bind(addr).unwrap();
-    let router = Router::new();
+  pub fn new<A> (addrs: A, max_connections: usize, router: Router) -> Self
+  where
+    A: net::ToSocketAddrs
+  {
+    let listener = TcpListener::bind(addrs).unwrap();
 
-    Ok(Server {
+    Server {
       listener,
       router,
       max_connections,
       current_connections: Arc::new(Mutex::new(0)),
-    })
+    }
   }
 
   pub fn run(&self) {
@@ -50,6 +52,10 @@ impl Server {
         let _ = tx1.send(());
       });
     }
+  }
+
+  pub fn bind<A: net::ToSocketAddrs> (mut self, addrs: A) -> io::Result<Self> {
+    Ok(self)
   }
 
   fn handle_client (router: &Router, mut stream: TcpStream) {
