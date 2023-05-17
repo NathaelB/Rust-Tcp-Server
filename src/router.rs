@@ -1,4 +1,5 @@
 use std::collections::HashMap;
+use std::io;
 use std::io::Write;
 use std::net::TcpStream;
 
@@ -21,8 +22,10 @@ impl Router {
     }
   }
 
-  pub fn add_route (&mut self, path: &str, handler: Handler) {
+  pub fn add_route (mut self, path: &str, handler: Handler) -> io::Result<Self> {
     self.routes.insert(path.to_string(), handler);
+
+    Ok(self)
   }
 
   pub fn handle_request(&self, path: &str, stream: &mut TcpStream) {
