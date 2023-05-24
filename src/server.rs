@@ -4,58 +4,67 @@ use std::net::{TcpListener, TcpStream};
 use std::sync::{Arc, Mutex};
 use std::sync::mpsc::channel;
 use std::{io, net, thread};
-use crate::router::Router;
+use crate::router::{Handler, Router};
 
 pub(crate) struct Server {
-  pub listener: TcpListener,
+  pub listener: Option<TcpListener>,
   pub router: Router,
   pub max_connections: usize,
   pub current_connections: Arc<Mutex<usize>>
 }
 
 impl Server {
-  pub fn new<A> (addrs: A, max_connections: usize, router: Router) -> Self
-  where
-    A: net::ToSocketAddrs
-  {
-    let listener = TcpListener::bind(addrs).unwrap();
-
+  pub fn new (max_connections: usize) -> Self {
     Server {
-      listener,
-      router,
+      listener: None,
+      router: Router::new(),
       max_connections,
       current_connections: Arc::new(Mutex::new(0)),
     }
   }
 
-  pub fn run(&self) {
+  pub fn run(self) {
     println!("Server TCP running in port : 3333");
-
+    self.router.get_routes().keys().for_each(|key| {
+      println!("key: {}", key);
+    });
     let (tx, _rx) = channel::<()>();
+    if let Some(listener) = self.listener {
+      for stream in listener.incoming() {
+        let tx = tx.clone();
+        let current_connections = self.current_connections.clone();
 
-    for stream in self.listener.incoming() {
-      let tx = tx.clone();
-      let current_connections = self.current_connections.clone();
+        let mut current_connections_guard = current_connections.lock().unwrap();
+        if *current_connections_guard >= self.max_connections {
+          continue;
+        }
+        *current_connections_guard += 1;
 
-      let mut current_connections_guard = current_connections.lock().unwrap();
-      if *current_connections_guard >= self.max_connections {
-        continue;
+        let stream = stream.unwrap();
+        let router = self.router.clone();
+        let tx1 = tx.clone();
+
+        thread::spawn(move || {
+          Self::handle_client(&router, stream);
+          let _ = tx1.send(());
+        });
       }
-      *current_connections_guard += 1;
-
-      let stream = stream.unwrap();
-      let router = self.router.clone();
-      let tx1 = tx.clone();
-
-      thread::spawn(move || {
-        Self::handle_client(&router, stream);
-        let _ = tx1.send(());
-      });
     }
   }
 
-  pub fn bind<A: net::ToSocketAddrs> (mut self, addrs: A) -> io::Result<Self> {
-    Ok(self)
+  pub fn service (mut self, path: &str, handler: Handler) -> Self {
+
+    //self.router.add_route(path, handler).unwrap();
+    self.router.add_route(path, handler).unwrap();
+    self
+  }
+
+
+  pub fn bind<A: net::ToSocketAddrs> (mut self, _addrs: A) -> Self {
+    let listener = TcpListener::bind(_addrs).unwrap();
+    self.listener = Option::from(listener);
+
+    self
   }
 
   fn handle_client (router: &Router, mut stream: TcpStream) {

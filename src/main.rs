@@ -9,30 +9,20 @@ use server::Server;
 use crate::http::builder::HttpResponse;
 use crate::router::Router;
 
-fn main () {
-  let router = Router::new()
-    .add_route("/hello", |stream| {
-      let response = HttpResponse::new(200)
-        .header("Content-Type", "text/plain")
-        .body(b"Hello, World!")
-        .build();
+fn hello_world (stream: &mut std::net::TcpStream) {
+  let response = HttpResponse::new(200)
+    .header("Content-Type", "text/html")
+    .body(b"<h1>Hello World</h1>")
+    .build();
 
-      stream.write(response.as_slice()).unwrap();
-      stream.flush().unwrap();
-      stream.shutdown(Shutdown::Both).unwrap();
-    }).unwrap();
-
-  Server::new(("127.0.0.1", 3333), 10, router).run();
+  stream.write(&response).unwrap();
+  stream.flush().unwrap();
+  stream.shutdown(Shutdown::Both).unwrap();
 }
 
-/*
-let response = HttpResponse::new(200)
-        .header("Content-Type", "text/plain")
-        .body(b"Hello, World!")
-        .build();
-
-      stream.write(&response).unwrap();
-      stream.flush().unwrap();
-
-      println!("Message envoyé");
- */
+fn main () {
+  Server::new(10)
+    .bind(("127.0.0.1", 8888))
+    .service("/hello", hello_world)
+    .run();
+}
