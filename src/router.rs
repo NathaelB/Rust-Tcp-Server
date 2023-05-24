@@ -1,9 +1,10 @@
 use std::collections::HashMap;
 use std::io;
-use std::io::Write;
-use std::net::TcpStream;
+use std::io::{Error, Write};
+use std::net::{Shutdown, TcpStream};
+use crate::http::builder::HttpResponse;
 
-type Handler = fn(&mut TcpStream);
+pub type Handler = fn(&mut TcpStream);
 
 enum Route {
   Static(String),
@@ -22,21 +23,33 @@ impl Router {
     }
   }
 
-  pub fn add_route (mut self, path: &str, handler: Handler) -> io::Result<Self> {
+  pub fn add_route (&mut self, path: &str, handler: Handler) -> Result<&mut Router, Error> {
     self.routes.insert(path.to_string(), handler);
 
     Ok(self)
   }
 
+  pub fn get_routes (&self) -> &HashMap<String, Handler> {
+    &self.routes
+  }
+
   pub fn handle_request(&self, path: &str, stream: &mut TcpStream) {
+
     match self.routes.get(path) {
       Some(handler) => {
         handler(stream)
       }
       None => {
         println!("ERROR 404");
-        stream.write(b"404 Not Found").unwrap();
+
+        let response = HttpResponse::new(404)
+          .header("Content-Type", "text/html")
+          .body(b"<h1>404 Not Found</h1>")
+          .build();
+
+        stream.write(&response).unwrap();
         stream.flush().unwrap();
+        stream.shutdown(Shutdown::Both).unwrap();
       }
     }
   }
