@@ -4,7 +4,7 @@ use std::net::TcpStream;
 pub struct HttpResponse {
   status_code: u16,
   headers: Vec<(String, String)>,
-  body: Vec<u8>,
+  body: String,
 }
 
 impl HttpResponse {
@@ -12,7 +12,7 @@ impl HttpResponse {
     HttpResponse {
       status_code,
       headers: Vec::new(),
-      body: Vec::new(),
+      body: String::new(),
     }
   }
 
@@ -21,8 +21,8 @@ impl HttpResponse {
     self
   }
 
-  pub fn body(mut self, body: &[u8]) -> Self {
-    self.body.extend_from_slice(body);
+  pub fn body(mut self, body: String) -> Self {
+    self.body = body;
     self
   }
 
@@ -39,7 +39,7 @@ impl HttpResponse {
 
     response.push_str("\r\n");
     let mut response = response.into_bytes();
-    response.extend(self.body);
+    response.extend(self.body.bytes());
     response
   }
 }

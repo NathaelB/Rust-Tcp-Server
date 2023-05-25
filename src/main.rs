@@ -12,7 +12,7 @@ use crate::router::Router;
 fn hello_world (stream: &mut std::net::TcpStream) {
   let response = HttpResponse::new(200)
     .header("Content-Type", "text/html")
-    .body(b"<h1>Hello World</h1>")
+    .body("<h1>Hello World</h1>".to_string())
     .build();
 
   stream.write(&response).unwrap();

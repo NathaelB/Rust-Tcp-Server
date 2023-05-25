@@ -44,7 +44,7 @@ impl Router {
 
         let response = HttpResponse::new(404)
           .header("Content-Type", "text/html")
-          .body(b"<h1>404 Not Found</h1>")
+          .body("<h1>404</h1>".to_string())
           .build();
 
         stream.write(&response).unwrap();
