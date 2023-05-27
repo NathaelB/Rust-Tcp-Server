@@ -1,6 +1,5 @@
 use std::io::{Read, Write};
 use std::net::{Shutdown, TcpStream, ToSocketAddrs};
-use crate::database::result::Error;
 use crate::database::connection::Connection;
 
 pub struct RawConnection {

@@ -1,15 +1,12 @@
+mod route;
+
 use std::collections::HashMap;
-use std::io;
 use std::io::{Error, Write};
 use std::net::{Shutdown, TcpStream};
 use crate::http::builder::HttpResponse;
 
 pub type Handler = fn(&mut TcpStream);
 
-enum Route {
-  Static(String),
-  Parameter(String)
-}
 
 #[derive(Clone)]
 pub(crate) struct Router {

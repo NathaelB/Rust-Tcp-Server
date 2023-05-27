@@ -1,13 +1,14 @@
-use std::error::Error;
 use std::io::{ErrorKind, Read, Write};
 use std::net::{TcpListener, TcpStream};
 use std::sync::{Arc, Mutex};
 use std::sync::mpsc::channel;
-use std::{io, net, thread};
+use std::{net, thread};
 use crate::router::{Handler, Router};
+use crate::services::registry::ServiceRegistry;
 
 pub(crate) struct Server {
   pub listener: Option<TcpListener>,
+  pub registry: ServiceRegistry,
   pub router: Router,
   pub max_connections: usize,
   pub current_connections: Arc<Mutex<usize>>
@@ -15,8 +16,10 @@ pub(crate) struct Server {
 
 impl Server {
   pub fn new (max_connections: usize) -> Self {
+    let registry = ServiceRegistry::new();
     Server {
       listener: None,
+      registry,
       router: Router::new(),
       max_connections,
       current_connections: Arc::new(Mutex::new(0)),
@@ -25,9 +28,13 @@ impl Server {
 
   pub fn run(self) {
     println!("Server TCP running in port : 3333");
-    self.router.get_routes().keys().for_each(|key| {
-      println!("key: {}", key);
-    });
+    println!("Nombre de services : {}", self.registry.services.len());
+
+    for service in self.registry.services.iter() {
+      println!("Service : {:?}", service);
+
+    }
+
     let (tx, _rx) = channel::<()>();
     if let Some(listener) = self.listener {
       for stream in listener.incoming() {
@@ -52,11 +59,13 @@ impl Server {
     }
   }
 
-  pub fn service (mut self, path: &str, handler: Handler) -> Self {
-
-    //self.router.add_route(path, handler).unwrap();
-    self.router.add_route(path, handler).unwrap();
+  pub fn service<T: 'static>(mut self, service: T) -> Self {
+    self.registry.register(service);
     self
+  }
+
+  pub fn get_service<T: 'static> (&mut self) -> Option<&mut T> {
+    self.registry.get_mut()
   }
 
 

@@ -1,3 +1,4 @@
+#![allow(dead_code)]
 pub struct BaseModel {
   pub primary_key: String,
   pub booted: bool,

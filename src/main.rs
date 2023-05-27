@@ -1,7 +1,8 @@
 mod server;
-mod router;
 mod database;
 mod http;
+mod services;
+mod router;
 
 use std::io::Write;
 use std::net::Shutdown;
@@ -21,8 +22,16 @@ fn hello_world (stream: &mut std::net::TcpStream) {
 }
 
 fn main () {
-  Server::new(10)
+  let mut server = Server::new(10)
     .bind(("127.0.0.1", 8888))
-    .service("/hello", hello_world)
-    .run();
+    .service(Router::new());
+    //.service("/home", hello_world)
+
+  if let Some(router) = server.get_service::<Router>() {
+    router.add_route("/home", hello_world).expect("TODO: panic message");
+  } else {
+    println!("Router not found");
+  }
+  server.run();
+
 }

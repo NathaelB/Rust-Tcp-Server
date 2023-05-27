@@ -1,6 +1,3 @@
-use std::fmt::format;
-use std::net::TcpStream;
-
 pub struct HttpResponse {
   status_code: u16,
   headers: Vec<(String, String)>,
